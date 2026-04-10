@@ -1,6 +1,18 @@
 import { GoogleGenAI } from '@google/genai';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let ai: GoogleGenAI | null = null;
+
+function getAiClient() {
+  if (!ai) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error("GEMINI_API_KEY environment variable is missing.");
+      throw new Error("GEMINI_API_KEY is missing");
+    }
+    ai = new GoogleGenAI({ apiKey });
+  }
+  return ai;
+}
 
 export async function askTosQuestion(question: string, tosText: string) {
   const prompt = `
@@ -24,7 +36,8 @@ Return the result as a JSON object with the following schema:
 `;
 
   try {
-    const response = await ai.models.generateContent({
+    const client = getAiClient();
+    const response = await client.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
@@ -37,6 +50,6 @@ Return the result as a JSON object with the following schema:
     }
   } catch (error) {
     console.error("Error calling Gemini:", error);
-    return { answer: "Sorry, I encountered an error while searching the ToS.", sectionId: null };
+    return { answer: "Sorry, I encountered an error while searching the ToS. Please check if the API key is configured correctly.", sectionId: null };
   }
 }
